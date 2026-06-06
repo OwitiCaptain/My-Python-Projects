@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Login - Jamoko Links</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .toast { position: fixed; bottom: 24px; right: 24px; z-index: 50; padding: 14px 20px; border-radius: 16px; color: white; font-weight: 500; display: none; }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-50 text-purple-700 mx-auto mb-4">
+                <i class="fas fa-store text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-semibold">Client Login</h1>
+            <p class="text-gray-500 mt-2">Access your Jamoko Links dashboard and manage your hotspot business.</p>
+        </div>
+        <form id="loginForm" class="space-y-5" onsubmit="handleLogin(event)">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email address</label>
+                <input id="email" type="email" required class="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" placeholder="your@business.com" />
+                <p id="emailError" class="mt-2 text-sm text-red-600 hidden"></p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input id="password" type="password" required class="mt-2 w-full rounded-2xl border border-gray-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" placeholder="••••••••" />
+                <p id="passwordError" class="mt-2 text-sm text-red-600 hidden"></p>
+            </div>
+            <button id="loginButton" type="submit" class="w-full rounded-2xl bg-purple-600 text-white py-3 text-lg font-semibold hover:bg-purple-700 transition">Login to Dashboard</button>
+            <p class="text-center text-sm text-gray-500">Don’t have an account? <a href="client-register.html" class="text-purple-600 font-semibold">Register now</a></p>
+        </form>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="js/client.js"></script>
+    <script>
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = isError ? '#dc2626' : '#16a34a';
+            toast.style.display = 'block';
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function validateFields() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const emailError = document.getElementById('emailError');
+            const passwordError = document.getElementById('passwordError');
+            emailError.classList.add('hidden');
+            passwordError.classList.add('hidden');
+            let valid = true;
+            if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+                emailError.textContent = 'Enter a valid email address.';
+                emailError.classList.remove('hidden');
+                valid = false;
+            }
+            if (!password) {
+                passwordError.textContent = 'Enter your password.';
+                passwordError.classList.remove('hidden');
+                valid = false;
+            }
+            return valid;
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            if (!validateFields()) return;
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButton');
+            button.disabled = true;
+            button.textContent = 'Signing in...';
+            try {
+                const response = await ClientAPI.login(email, password);
+                const token = response.token || response.access_token || response.data?.token;
+                const client = response.client || response.user || response.data?.client || response.data?.user || {};
+                if (!token) throw new Error(response.message || 'Login failed.');
+                ClientAPI.setToken(token);
+                localStorage.setItem('clientEmail', client.email || email);
+                localStorage.setItem('clientBusiness', client.business_name || client.name || 'Jamoko Business');
+                localStorage.setItem('clientPhone', client.phone || '');
+                showToast('Login successful. Redirecting...');
+                setTimeout(() => window.location.href = 'client-dashboard.html', 600);
+            } catch (error) {
+                showToast(error.message || 'Unable to login. Please try again.', true);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Login to Dashboard';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Jamoko Links</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/admin.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-panel { max-width: 640px; width: 100%; background: white; border-radius: 24px; overflow: hidden; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 100; padding: 16px 20px; border-radius: 12px; color: white; display: none; min-width: 260px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <div class="flex h-screen overflow-hidden">
+            <aside class="sidebar fixed lg:relative inset-y-0 left-0 w-72 bg-slate-900 text-white transform -translate-x-full lg:translate-x-0 transition z-40 h-full overflow-y-auto">
+                <div class="p-6 border-b border-slate-800">
+                    <h1 class="text-2xl font-bold">Jamoko Admin</h1>
+                    <p id="adminSubtitle" class="text-sm text-slate-400 mt-1">Super admin panel</p>
+                </div>
+                <nav class="p-4 space-y-2">
+                    <button onclick="showAdminPage('dashboard')" data-page="dashboard" class="admin-nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Dashboard</button>
+                    <button onclick="showAdminPage('clients')" data-page="clients" class="admin-nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Clients</button>
+                    <button onclick="showAdminPage('routers')" data-page="routers" class="admin-nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Routers</button>
+                    <button onclick="showAdminPage('transactions')" data-page="transactions" class="admin-nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Transactions</button>
+                    <button onclick="showAdminPage('commission')" data-page="commission" class="admin-nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Commissions</button>
+                </nav>
+                <div class="p-4 border-t border-slate-800">
+                    <button onclick="adminLogout()" class="w-full text-left text-slate-300 hover:text-white px-4 py-3 rounded-2xl transition"><i class="fas fa-sign-out-alt mr-3"></i> Logout</button>
+                </div>
+            </aside>
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 lg:ml-72">
+                <div id="dashboardAdminPage" class="space-y-6"></div>
+                <div id="clientsAdminPage" class="hidden space-y-6"></div>
+                <div id="routersAdminPage" class="hidden space-y-6"></div>
+                <div id="transactionsAdminPage" class="hidden space-y-6"></div>
+                <div id="commissionAdminPage" class="hidden space-y-6"></div>
+            </main>
+        </div>
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <div id="clientModal" class="modal-backdrop hidden">
+        <div class="modal-panel p-6">
+            <div class="flex items-center justify-between mb-6"><div><h2 id="clientModalTitle" class="text-xl font-semibold">Client Details</h2><p id="clientModalSubtitle" class="text-sm text-slate-500">Approve, disable, or reset account settings.</p></div><button onclick="closeClientModal()" class="text-slate-500 hover:text-slate-900"><i class="fas fa-times"></i></button></div>
+            <div class="space-y-4"><div><label class="block text-sm font-medium text-slate-700">Business Name</label><input id="clientBusinessName" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><div><label class="block text-sm font-medium text-slate-700">Email</label><input id="clientEmail" type="email" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><div><label class="block text-sm font-medium text-slate-700">Phone</label><input id="clientPhone" type="tel" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><div class="grid gap-4 md:grid-cols-2"><button id="clientEnableButton" onclick="toggleClientStatus(true)" class="px-5 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition">Enable Client</button><button id="clientDisableButton" onclick="toggleClientStatus(false)" class="px-5 py-3 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition">Disable Client</button></div></div>
+        </div>
+    </div>
+
+    <script>
+        const adminState = { dashboard: {}, clients: [], routers: [], transactions: [], commission: [], selectedClient: null };
+        const adminPages = ['dashboard', 'clients', 'routers', 'transactions', 'commission'];
+
+        function initAdminDashboard() {
+            if (!AdminAPI.token) {
+                return window.location.href = 'admin-login.html';
+            }
+            showAdminPage('dashboard');
+            loadAdminData();
+            setInterval(loadAdminData, 30000);
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>${message}`;
+            toast.style.background = isError ? '#ef4444' : '#22c55e';
+            toast.style.display = 'block';
+            clearTimeout(showToast.timeoutId);
+            showToast.timeoutId = setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function showAdminPage(page) {
+            adminPages.forEach(name => {
+                document.getElementById(`${name}AdminPage`).classList.toggle('hidden', name !== page);
+                const btn = document.querySelector(`[data-page="${name}"]`);
+                if (btn) btn.classList.toggle('bg-slate-800', name === page);
+            });
+            if (page === 'dashboard') renderAdminDashboard();
+            if (page === 'clients') renderAdminClients();
+            if (page === 'routers') renderAdminRouters();
+            if (page === 'transactions') renderAdminTransactions();
+            if (page === 'commission') renderAdminCommission();
+        }
+
+        async function loadAdminData() {
+            await Promise.all([loadAdminDashboard(), loadAdminClients(), loadAdminRouters(), loadAdminTransactions(), loadAdminCommission()]);
+        }
+
+        async function loadAdminDashboard() {
+            try {
+                const response = await AdminAPI.getDashboard();
+                adminState.dashboard = response || {};
+                renderAdminDashboard();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadAdminClients() {
+            try {
+                const response = await AdminAPI.getClients();
+                adminState.clients = Array.isArray(response) ? response : response.data || response.clients || [];
+                renderAdminClients();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadAdminRouters() {
+            try {
+                const response = await AdminAPI.getRouters();
+                adminState.routers = Array.isArray(response) ? response : response.data || response.routers || [];
+                renderAdminRouters();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadAdminTransactions() {
+            try {
+                const response = await AdminAPI.getTransactions();
+                adminState.transactions = Array.isArray(response) ? response : response.data || response.transactions || [];
+                renderAdminTransactions();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadAdminCommission() {
+            try {
+                const response = await AdminAPI.getCommission();
+                adminState.commission = Array.isArray(response) ? response : response.data || response.commission || [];
+                renderAdminCommission();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        function renderAdminDashboard() {
+            const summary = adminState.dashboard;
+            const clientsCount = Array.isArray(adminState.clients) ? adminState.clients.length : summary.clients_count || 0;
+            const routersCount = Array.isArray(adminState.routers) ? adminState.routers.length : summary.routers_count || 0;
+            const transactionCount = Array.isArray(adminState.transactions) ? adminState.transactions.length : summary.transactions_count || 0;
+            const totalRevenue = summary.total_revenue || adminState.transactions.reduce((sum, tx) => sum + Number(tx.amount || tx.total || 0), 0);
+
+            document.getElementById('dashboardAdminPage').innerHTML = `
+                <div class="grid gap-6 xl:grid-cols-4">
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Clients</p><p class="mt-3 text-3xl font-semibold">${clientsCount}</p></div><i class="fas fa-users text-3xl text-blue-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Routers</p><p class="mt-3 text-3xl font-semibold">${routersCount}</p></div><i class="fas fa-network-wired text-3xl text-purple-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Transactions</p><p class="mt-3 text-3xl font-semibold">${transactionCount}</p></div><i class="fas fa-receipt text-3xl text-green-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Revenue</p><p class="mt-3 text-3xl font-semibold">${formatCurrency(totalRevenue)}</p></div><i class="fas fa-money-bill-wave text-3xl text-orange-500"></i></div></div>
+                </div>
+                <div class="grid gap-6 lg:grid-cols-2 mt-6"><div class="bg-white rounded-3xl shadow-md p-6"><h2 class="text-xl font-semibold mb-4">Revenue Trend</h2><canvas id="adminRevenueChart"></canvas></div><div class="bg-white rounded-3xl shadow-md p-6"><h2 class="text-xl font-semibold mb-4">Top Clients</h2><div class="space-y-4">${(adminState.clients || []).slice(0,5).map(client => `<div class="rounded-3xl bg-slate-50 p-4"><p class="font-semibold">${client.business_name || client.name}</p><p class="text-sm text-slate-500">${client.email || ''}</p></div>`).join('')}</div></div></div>
+            `;
+            renderAdminCharts();
+        }
+
+        function renderAdminCharts() {
+            const context = document.getElementById('adminRevenueChart')?.getContext('2d');
+            if (!context) return;
+            const labels = adminState.commission.map(item => item.month || item.period || item.date || 'N/A');
+            const values = adminState.commission.map(item => Number(item.amount || item.commission || 0));
+            if (window.adminRevenueChart) window.adminRevenueChart.destroy();
+            window.adminRevenueChart = new Chart(context, {
+                type: 'bar',
+                data: { labels: labels.length ? labels : ['Jan', 'Feb', 'Mar'], datasets: [{ label: 'Commission', data: values.length ? values : [0,0,0], backgroundColor: '#8b5cf6' }] },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderAdminClients() {
+            document.getElementById('clientsAdminPage').innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h2 class="text-2xl font-semibold">Client Management</h2><p class="text-slate-500">Review and manage client accounts.</p></div></div>
+                <div class="overflow-x-auto bg-white rounded-3xl shadow-md p-6 mt-6"><table class="min-w-full text-left"><thead><tr><th class="px-4 py-3 text-slate-500">Business</th><th class="px-4 py-3 text-slate-500">Email</th><th class="px-4 py-3 text-slate-500">Status</th><th class="px-4 py-3 text-slate-500">Joined</th><th class="px-4 py-3 text-slate-500">Actions</th></tr></thead><tbody>${adminState.clients.map(client => `<tr class="border-t"><td class="px-4 py-4 font-semibold">${client.business_name || client.name}</td><td class="px-4 py-4">${client.email}</td><td class="px-4 py-4">${client.is_active ? '<span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">Active</span>' : '<span class="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-semibold">Disabled</span>'}</td><td class="px-4 py-4">${formatDate(client.created_at || client.createdAt)}</td><td class="px-4 py-4"><button onclick="openClientModal(${client.id})" class="px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition">Details</button></td></tr>`).join('')}</tbody></table></div>
+            `;
+        }
+
+        function renderAdminRouters() {
+            document.getElementById('routersAdminPage').innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h2 class="text-2xl font-semibold">Router Inventory</h2><p class="text-slate-500">View routers and their current status.</p></div></div>
+                <div class="grid gap-6 lg:grid-cols-2 mt-6">${adminState.routers.map(router => `
+                    <div class="bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><h3 class="text-xl font-semibold">${router.name || router.router_name}</h3><p class="text-sm text-slate-500 mt-1">${router.ip_address || router.ip || 'No IP address'}</p></div><span class="text-xs font-semibold px-3 py-1 rounded-full ${router.is_online ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${router.is_online ? 'Online' : 'Offline'}</span></div><div class="mt-4 text-slate-500 text-sm"><p>Client: ${router.client?.business_name || router.client_name || 'Unknown'}</p><p>Status: ${router.status || 'N/A'}</p></div></div>`).join('')}</div>
+            `;
+        }
+
+        function renderAdminTransactions() {
+            document.getElementById('transactionsAdminPage').innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h2 class="text-2xl font-semibold">Transaction Log</h2><p class="text-slate-500">All payment events and hotspot purchases.</p></div></div>
+                <div class="overflow-x-auto bg-white rounded-3xl shadow-md p-6 mt-6"><table class="min-w-full text-left"><thead><tr><th class="px-4 py-3 text-slate-500">ID</th><th class="px-4 py-3 text-slate-500">Client</th><th class="px-4 py-3 text-slate-500">Package</th><th class="px-4 py-3 text-slate-500">Amount</th><th class="px-4 py-3 text-slate-500">Status</th><th class="px-4 py-3 text-slate-500">Date</th></tr></thead><tbody>${adminState.transactions.map(tx => `<tr class="border-t"><td class="px-4 py-4">${tx.id}</td><td class="px-4 py-4">${tx.client?.business_name || tx.client_name || tx.phone || 'N/A'}</td><td class="px-4 py-4">${tx.package || tx.package_name || 'N/A'}</td><td class="px-4 py-4 text-green-600 font-semibold">${formatCurrency(tx.amount || tx.total || 0)}</td><td class="px-4 py-4">${tx.status || tx.payment_status || 'Completed'}</td><td class="px-4 py-4">${formatDate(tx.created_at || tx.date)}</td></tr>`).join('')}</tbody></table></div>
+            `;
+        }
+
+        function renderAdminCommission() {
+            const totalCommission = adminState.commission.reduce((sum, row) => sum + Number(row.amount || row.commission || 0), 0);
+            document.getElementById('commissionAdminPage').innerHTML = `
+                <div><h2 class="text-2xl font-semibold">Commission Management</h2><p class="text-slate-500">Track and approve commission payouts.</p></div>
+                <div class="bg-white rounded-3xl shadow-md p-6 mt-6"><div class="grid gap-6 lg:grid-cols-2"><div class="rounded-3xl bg-slate-50 p-6"><p class="text-sm text-slate-500">Pending Commission</p><p class="text-3xl font-semibold">${formatCurrency(totalCommission)}</p></div><div class="rounded-3xl bg-slate-50 p-6"><p class="text-sm text-slate-500">Approved Payouts</p><p class="text-3xl font-semibold">${formatCurrency(totalCommission * 0.75)}</p></div></div><div class="mt-6 overflow-x-auto"><table class="min-w-full text-left"><thead><tr><th class="px-4 py-3 text-slate-500">Period</th><th class="px-4 py-3 text-slate-500">Client</th><th class="px-4 py-3 text-slate-500">Amount</th><th class="px-4 py-3 text-slate-500">Status</th></tr></thead><tbody>${adminState.commission.map(row => `<tr class="border-t"><td class="px-4 py-4">${row.month || row.period || formatDate(row.date)}</td><td class="px-4 py-4">${row.client?.business_name || row.client_name || 'Client'}</td><td class="px-4 py-4">${formatCurrency(row.amount || row.commission || 0)}</td><td class="px-4 py-4">${row.status || 'Pending'}</td></tr>`).join('')}</tbody></table></div></div>
+            `;
+        }
+
+        function openClientModal(clientId) {
+            const client = adminState.clients.find(item => String(item.id) === String(clientId));
+            if (!client) return showToast('Client not found.', true);
+            adminState.selectedClient = client;
+            document.getElementById('clientBusinessName').value = client.business_name || client.name || '';
+            document.getElementById('clientEmail').value = client.email || '';
+            document.getElementById('clientPhone').value = client.phone || client.phone_number || '';
+            document.getElementById('clientModal').classList.remove('hidden');
+        }
+
+        function closeClientModal() {
+            document.getElementById('clientModal').classList.add('hidden');
+            adminState.selectedClient = null;
+        }
+
+        async function toggleClientStatus(enable) {
+            if (!adminState.selectedClient) return;
+            const clientId = adminState.selectedClient.id;
+            try {
+                if (enable) {
+                    await AdminAPI.enableClient(clientId);
+                    showToast('Client enabled successfully.');
+                } else {
+                    await AdminAPI.disableClient(clientId);
+                    showToast('Client disabled successfully.');
+                }
+                closeClientModal();
+                await loadAdminClients();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Number(value || 0));
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return 'N/A';
+            const date = new Date(dateValue);
+            return date.toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function handleApiError(error) {
+            if (!error) return;
+            if (error.status === 401) return adminLogout();
+            if (error.status === 403) return showToast('Unauthorized action.', true);
+            const validation = error.payload?.errors;
+            if (error.status === 422 && validation) {
+                const firstKey = Object.keys(validation)[0];
+                return showToast(validation[firstKey][0] || 'Validation error.', true);
+            }
+            showToast(error.message || 'Server error, please try again.', true);
+        }
+
+        function adminLogout() {
+            AdminAPI.clearToken();
+            window.location.href = 'admin-login.html';
+        }
+
+        window.showAdminPage = showAdminPage;
+        window.openClientModal = openClientModal;
+        window.closeClientModal = closeClientModal;
+        window.toggleClientStatus = toggleClientStatus;
+        window.adminLogout = adminLogout;
+
+        initAdminDashboard();
+    </script>
+</body>
+</html>

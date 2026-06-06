@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Jamoko Links - WiFi Hotspot Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="js/portal.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .package-card { transition: all 0.3s ease; cursor: pointer; }
+        .package-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .package-card.selected { border: 2px solid #8b5cf6; background: linear-gradient(135deg, #f3e8ff 0%, #ffffff 100%); }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 1100; animation: slideIn 0.3s ease; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="text-center mb-12">
+            <div class="inline-block bg-white/20 rounded-full p-4 mb-4"><i class="fas fa-wifi text-5xl text-white"></i></div>
+            <h1 id="businessName" class="text-5xl font-bold text-white mb-2">Hotspot Portal</h1>
+            <p class="text-white/80 text-lg">Buy access instantly and connect in seconds.</p>
+        </div>
+        <div class="grid lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-2xl p-6">
+                    <h2 class="text-xl font-semibold mb-4"><i class="fas fa-tags text-purple-500 mr-2"></i> Choose Your Package</h2>
+                    <div id="packagesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+            <div>
+                <div class="bg-white rounded-2xl shadow-2xl p-6 sticky top-8">
+                    <h2 class="text-xl font-semibold mb-4"><i class="fas fa-mobile-alt text-green-500 mr-2"></i> Pay with M-Pesa</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Safaricom Number</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 font-semibold">+254</span>
+                                <input type="tel" id="phoneNumber" oninput="validatePhone()" placeholder="712 345 678" class="w-full pl-16 pr-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <p id="phoneError" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+                        <div id="selectedPackageSummary" class="hidden bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4"></div>
+                        <button id="payButton" disabled onclick="payWithMpesa()" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            Pay KES <span id="payAmount">0</span>
+                        </button>
+                        <div class="text-center pt-4"><p class="text-xs text-gray-400">Secured by Safaricom M-Pesa</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="successModal" class="modal hidden">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center mx-4">
+                <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-check-circle text-green-600 text-5xl"></i></div>
+                <h3 class="text-2xl font-bold mb-2">Payment Successful! 🎉</h3>
+                <p class="text-gray-600 mb-4">You are now connected to the internet.</p>
+                <div class="bg-gray-100 rounded-xl p-4 mb-4"><p class="text-sm text-gray-600 mb-1">Your Voucher Code:</p><p id="voucherCode" class="text-2xl font-mono font-bold text-purple-600"></p></div>
+                <button onclick="startBrowsing()" class="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition">Start Browsing →</button>
+            </div>
+        </div>
+        <div id="loadingModal" class="modal hidden">
+            <div class="bg-white rounded-2xl p-8 text-center max-w-sm mx-4">
+                <div class="mb-4"><i class="fas fa-mobile-alt text-6xl text-green-500 animate-pulse"></i></div>
+                <h3 class="text-xl font-bold mb-2">STK Push Sent!</h3>
+                <p class="text-gray-600 mb-2">Check your phone and enter your M-Pesa PIN.</p>
+                <div class="flex items-center justify-center space-x-2 text-sm text-gray-500"><i class="fas fa-spinner fa-spin"></i><span>Waiting for confirmation...</span></div>
+                <button onclick="cancelPayment()" class="mt-6 text-red-500 text-sm hover:text-red-700">Cancel Payment</button>
+            </div>
+        </div>
+        <div id="toast" class="toast hidden"></div>
+    </div>
+    <script>
+        function setError(message) {
+            const phoneError = document.getElementById('phoneError');
+            phoneError.innerText = message;
+            phoneError.classList.remove('hidden');
+        }
+
+        function clearError() {
+            document.getElementById('phoneError').classList.add('hidden');
+        }
+
+        function initPortalPage() {
+            if (typeof initPortal === 'function') {
+                initPortal();
+            } else {
+                showToast('Unable to initialize portal. Script is missing.', true);
+            }
+        }
+
+        window.onload = initPortalPage;
+    </script>
+</body>
+</html>

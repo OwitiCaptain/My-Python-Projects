@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Dashboard - Jamoko Links</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/client.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar { transition: all 0.3s ease; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .modal-panel { max-width: 640px; width: 100%; background: white; border-radius: 24px; overflow: hidden; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 100; padding: 16px 20px; border-radius: 12px; color: white; display: none; min-width: 260px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <div class="flex h-screen overflow-hidden">
+            <aside id="sidebar" class="sidebar fixed lg:relative inset-y-0 left-0 w-72 bg-slate-900 text-white transform -translate-x-full lg:translate-x-0 transition z-40 h-full overflow-y-auto">
+                <div class="p-6 border-b border-slate-800">
+                    <h1 class="text-2xl font-bold">Jamoko Links</h1>
+                    <p id="sidebarBusinessName" class="text-sm text-slate-400 mt-1">Loading...</p>
+                </div>
+                <nav class="p-4 space-y-2">
+                    <button onclick="showPage('dashboard')" data-page="dashboard" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Dashboard</button>
+                    <button onclick="showPage('routers')" data-page="routers" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Routers</button>
+                    <button onclick="showPage('packages')" data-page="packages" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Packages</button>
+                    <button onclick="showPage('users')" data-page="users" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Active Users</button>
+                    <button onclick="showPage('reports')" data-page="reports" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Reports</button>
+                    <button onclick="showPage('settings')" data-page="settings" class="nav-item w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-800 transition">Settings</button>
+                </nav>
+                <div class="p-4 border-t border-slate-800">
+                    <button onclick="logout()" class="w-full text-left text-slate-300 hover:text-white px-4 py-3 rounded-2xl transition"><i class="fas fa-sign-out-alt mr-3"></i> Logout</button>
+                </div>
+            </aside>
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 lg:ml-72">
+                <div id="dashboardPage" class="space-y-6"></div>
+                <div id="routersPage" class="hidden space-y-6"></div>
+                <div id="packagesPage" class="hidden space-y-6"></div>
+                <div id="usersPage" class="hidden space-y-6"></div>
+                <div id="reportsPage" class="hidden space-y-6"></div>
+                <div id="settingsPage" class="hidden space-y-6"></div>
+            </main>
+        </div>
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <div id="routerModal" class="modal-backdrop hidden">
+        <div class="modal-panel p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 id="routerModalTitle" class="text-xl font-semibold">Add Router</h2>
+                    <p id="routerModalSubtitle" class="text-sm text-slate-500">Enter your MikroTik router details.</p>
+                </div>
+                <button onclick="closeRouterModal()" class="text-slate-500 hover:text-slate-900"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-slate-700">Router Name</label><input id="routerName" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div><label class="block text-sm font-medium text-slate-700">IP Address</label><input id="routerIp" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div><label class="block text-sm font-medium text-slate-700">SSH Username</label><input id="routerUsername" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div><label class="block text-sm font-medium text-slate-700">SSH Password</label><input id="routerPassword" type="password" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div class="flex justify-end gap-3 mt-4"><button onclick="closeRouterModal()" class="px-5 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition">Cancel</button><button id="saveRouterButton" onclick="saveRouter()" class="px-5 py-3 rounded-2xl bg-purple-600 text-white hover:bg-purple-700 transition">Save Router</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="packageModal" class="modal-backdrop hidden">
+        <div class="modal-panel p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 id="packageModalTitle" class="text-xl font-semibold">Add Package</h2>
+                    <p id="packageModalSubtitle" class="text-sm text-slate-500">Create or update a pricing package.</p>
+                </div>
+                <button onclick="closePackageModal()" class="text-slate-500 hover:text-slate-900"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-sm font-medium text-slate-700">Package Name</label><input id="packageName" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div><label class="block text-sm font-medium text-slate-700">Price (KES)</label><input id="packagePrice" type="number" min="1" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div><label class="block text-sm font-medium text-slate-700">Duration (minutes)</label><input id="packageMinutes" type="number" min="1" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div>
+                <div class="flex justify-between items-center"><label class="flex items-center gap-3"><input id="packageActive" type="checkbox" class="h-5 w-5 text-purple-600" /><span class="text-sm text-slate-700">Active</span></label></div>
+                <div class="flex justify-end gap-3 mt-4"><button onclick="closePackageModal()" class="px-5 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition">Cancel</button><button id="savePackageButton" onclick="savePackage()" class="px-5 py-3 rounded-2xl bg-purple-600 text-white hover:bg-purple-700 transition">Save Package</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sectionMap = ['dashboard', 'routers', 'packages', 'users', 'reports', 'settings'];
+        const state = {
+            dashboard: {},
+            routers: [],
+            packages: [],
+            activeUsers: [],
+            transactions: [],
+            earnings: [],
+            currentRouterId: null,
+            currentPackageId: null
+        };
+        let dashboardTimer;
+        let activeUsersTimer;
+        let routerStatusTimer;
+        let countdownTimer;
+        let revenueChart;
+
+        const businessName = localStorage.getItem('clientBusiness') || 'My Business';
+
+        function initClientDashboard() {
+            if (!ClientAPI.token) {
+                return window.location.href = 'client-login.html';
+            }
+            document.getElementById('sidebarBusinessName').innerText = businessName;
+            showPage('dashboard');
+            loadAllData();
+            dashboardTimer = setInterval(loadDashboard, 30000);
+            activeUsersTimer = setInterval(loadActiveUsers, 10000);
+            routerStatusTimer = setInterval(loadRouters, 60000);
+            countdownTimer = setInterval(renderUsers, 1000);
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i>${message}`;
+            toast.style.background = isError ? '#ef4444' : '#22c55e';
+            toast.style.display = 'block';
+            clearTimeout(showToast.timeoutId);
+            showToast.timeoutId = setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function showPage(page) {
+            sectionMap.forEach(name => {
+                document.getElementById(`${name}Page`).classList.toggle('hidden', name !== page);
+                const btn = document.querySelector(`[data-page="${name}"]`);
+                if (btn) btn.classList.toggle('bg-slate-800', name === page);
+            });
+            if (page === 'dashboard') renderDashboard();
+            if (page === 'routers') renderRouters();
+            if (page === 'packages') renderPackages();
+            if (page === 'users') renderUsers();
+            if (page === 'reports') renderReports();
+            if (page === 'settings') renderSettings();
+        }
+
+        async function loadAllData() {
+            await Promise.all([loadDashboard(), loadRouters(), loadPackages(), loadActiveUsers(), loadTransactions(), loadEarnings()]);
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await ClientAPI.getDashboard();
+                state.dashboard = response || {};
+                renderDashboard();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadRouters() {
+            try {
+                const response = await ClientAPI.getRouters();
+                state.routers = Array.isArray(response) ? response : response.data || response.routers || [];
+                renderRouters();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const response = await ClientAPI.getPackages();
+                state.packages = Array.isArray(response) ? response : response.data || response.packages || [];
+                renderPackages();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadActiveUsers() {
+            try {
+                const response = await ClientAPI.getActiveUsers();
+                const payload = response.data || response.users || response;
+                state.activeUsers = Array.isArray(payload) ? payload : [];
+                renderUsers();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await ClientAPI.getTransactions();
+                const payload = response.data || response.transactions || response;
+                state.transactions = Array.isArray(payload) ? payload : [];
+                renderReports();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function loadEarnings() {
+            try {
+                const response = await ClientAPI.getEarnings();
+                state.earnings = Array.isArray(response) ? response : response.data || response.earnings || [];
+                renderReports();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        function renderDashboard() {
+            const dashboard = state.dashboard;
+            const activeUsers = state.activeUsers.length;
+            const totalRouters = state.routers.length;
+            const recentTransactions = Array.isArray(dashboard.recent_transactions) ? dashboard.recent_transactions.slice(0, 5) : state.transactions.slice(0, 5);
+            const totalRevenue = dashboard.total_revenue ?? state.transactions.reduce((sum, tx) => sum + Number(tx.amount || tx.total || 0), 0);
+            const averageRevenue = totalRevenue / Math.max(state.transactions.length, 1);
+
+            document.getElementById('dashboardPage').innerHTML = `
+                <div class="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Revenue</p><p class="mt-3 text-3xl font-semibold">${formatCurrency(totalRevenue)}</p></div><i class="fas fa-money-bill-wave text-3xl text-green-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Active Users</p><p class="mt-3 text-3xl font-semibold">${activeUsers}</p></div><i class="fas fa-users text-3xl text-blue-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Routers</p><p class="mt-3 text-3xl font-semibold">${totalRouters}</p></div><i class="fas fa-network-wired text-3xl text-purple-600"></i></div></div>
+                    <div class="stat-card bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between"><div><p class="text-sm text-slate-500">Avg Tx</p><p class="mt-3 text-3xl font-semibold">${formatCurrency(averageRevenue)}</p></div><i class="fas fa-chart-line text-3xl text-orange-500"></i></div></div>
+                </div>
+                <div class="grid gap-6 lg:grid-cols-2 mt-6">
+                    <div class="bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-semibold">Revenue History</h2><p class="text-sm text-slate-500">Last 7 days</p></div></div><canvas id="revenueChart"></canvas></div>
+                    <div class="bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between mb-4"><div><h2 class="text-xl font-semibold">Package Usage</h2><p class="text-sm text-slate-500">Latest package activity</p></div></div><canvas id="packageChart"></canvas></div>
+                </div>
+                <div class="bg-white rounded-3xl shadow-md p-6 mt-6"><div class="flex items-center justify-between mb-4"><h2 class="text-xl font-semibold">Recent Transactions</h2><button onclick="downloadTransactionsCsv()" class="px-4 py-2 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition">Export CSV</button></div><div class="overflow-x-auto"><table class="min-w-full text-left border-separate border-spacing-y-3"><thead><tr><th class="px-4 py-3 text-sm text-slate-500">Client</th><th class="px-4 py-3 text-sm text-slate-500">Package</th><th class="px-4 py-3 text-sm text-slate-500">Amount</th><th class="px-4 py-3 text-sm text-slate-500">Status</th><th class="px-4 py-3 text-sm text-slate-500">Date</th></tr></thead><tbody>${recentTransactions.map(tx => `<tr class="bg-slate-50 rounded-3xl ny-2"><td class="px-4 py-4">${tx.phone || tx.customer || 'Guest'}</td><td class="px-4 py-4">${tx.package || tx.package_name || 'N/A'}</td><td class="px-4 py-4 text-green-600 font-semibold">${formatCurrency(tx.amount || tx.total || 0)}</td><td class="px-4 py-4">${tx.status || tx.payment_status || 'Completed'}</td><td class="px-4 py-4">${formatDate(tx.created_at || tx.date)}</td></tr>`).join('')}</tbody></table></div></div>
+            `;
+            renderDashboardCharts();
+        }
+
+        function renderDashboardCharts() {
+            const revenueCtx = document.getElementById('revenueChart')?.getContext('2d');
+            const packageCtx = document.getElementById('packageChart')?.getContext('2d');
+            const labels = state.earnings.map(entry => `${entry.month || entry.period || entry.date || 'N/A'}`);
+            const revenueData = state.earnings.map(entry => Number(entry.total_revenue || entry.revenue || 0));
+            const packageLabels = state.packages.map(pkg => pkg.name || `Package ${pkg.id}`);
+            const packageCounts = state.packages.map(pkg => Number(pkg.sales || pkg.usage || pkg.count || 1));
+
+            if (revenueCtx) {
+                if (revenueChart) revenueChart.destroy();
+                revenueChart = new Chart(revenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: labels.length ? labels : ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{ label: 'Revenue', data: revenueData.length ? revenueData : [0, 0, 0, 0], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.15)', tension: 0.4, fill: true }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                });
+            }
+            if (packageCtx) {
+                if (window.packageChart) window.packageChart.destroy();
+                window.packageChart = new Chart(packageCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: packageLabels.length ? packageLabels : ['Package A', 'Package B'],
+                        datasets: [{ data: packageCounts.length ? packageCounts : [1, 1], backgroundColor: ['#8b5cf6', '#22c55e', '#f59e0b', '#ef4444'] }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+        }
+
+        function renderRouters() {
+            document.getElementById('routersPage').innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h2 class="text-2xl font-semibold">Router Management</h2><p class="text-slate-500">Add, test, configure, and delete your routers.</p></div><button onclick="openRouterModal()" class="px-5 py-3 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition"><i class="fas fa-plus mr-2"></i>Add Router</button></div>
+                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">${state.routers.map(router => `
+                    <div class="bg-white rounded-3xl shadow-md p-6">
+                        <div class="flex justify-between items-start"><div><h3 class="text-xl font-semibold">${router.name || router.router_name}</h3><p class="text-sm text-slate-500 mt-1">${router.ip_address || router.ip || 'No IP'}</p></div><span class="text-xs font-semibold px-3 py-1 rounded-full ${router.is_online || router.online ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${router.is_online || router.online ? 'Online' : 'Offline'}</span></div>
+                        <div class="mt-4 space-y-2 text-sm text-slate-500"><div><strong>Status:</strong> ${router.config_status || router.status || 'Unknown'}</div><div><strong>Configured:</strong> ${router.configured ? 'Yes' : 'No'}</div></div>
+                        <div class="mt-6 grid gap-3"><button onclick="testRouter(${router.id})" class="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-2xl hover:bg-slate-200 transition"><i class="fas fa-plug mr-2"></i>Test Connection</button><button onclick="configureRouter(${router.id})" class="w-full px-4 py-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition"><i class="fas fa-cog mr-2"></i>Configure Router</button><button onclick="editRouter(${router.id})" class="w-full px-4 py-3 bg-yellow-100 text-yellow-700 rounded-2xl hover:bg-yellow-200 transition"><i class="fas fa-edit mr-2"></i>Edit</button><button onclick="deleteRouter(${router.id})" class="w-full px-4 py-3 bg-red-100 text-red-700 rounded-2xl hover:bg-red-200 transition"><i class="fas fa-trash mr-2"></i>Delete</button></div>
+                    </div>`).join('')}</div>
+            `;
+        }
+
+        function renderPackages() {
+            document.getElementById('packagesPage').innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"><div><h2 class="text-2xl font-semibold">Packages</h2><p class="text-slate-500">Create plans for your guests.</p></div><button onclick="openPackageModal()" class="px-5 py-3 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition"><i class="fas fa-plus mr-2"></i>Add Package</button></div>
+                <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-6">${state.packages.map(pkg => `
+                    <div class="bg-white rounded-3xl shadow-md p-6">
+                        <div class="flex justify-between items-start"><div><h3 class="text-xl font-semibold">${pkg.name}</h3><p class="mt-2 text-3xl font-bold text-purple-600">KES ${pkg.price}</p></div><span class="text-xs font-semibold px-3 py-1 rounded-full ${pkg.is_active || pkg.active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${pkg.is_active || pkg.active ? 'Active' : 'Inactive'}</span></div>
+                        <p class="mt-4 text-slate-500">Duration: ${pkg.time_minutes || pkg.minutes || 0} minutes</p>
+                        <div class="mt-6 grid gap-3"><button onclick="handleEditPackage(${pkg.id})" class="w-full px-4 py-3 bg-yellow-100 text-yellow-700 rounded-2xl hover:bg-yellow-200 transition"><i class="fas fa-edit mr-2"></i>Edit</button><button onclick="deletePackage(${pkg.id})" class="w-full px-4 py-3 bg-red-100 text-red-700 rounded-2xl hover:bg-red-200 transition"><i class="fas fa-trash mr-2"></i>Delete</button></div>
+                    </div>`).join('')}</div>
+            `;
+        }
+
+        function renderUsers() {
+            document.getElementById('usersPage').innerHTML = `
+                <div><h2 class="text-2xl font-semibold">Active Users</h2><p class="text-slate-500">Monitor connected hotspot guests.</p></div>
+                <div class="space-y-4 mt-6">${state.activeUsers.length ? state.activeUsers.map(user => `
+                    <div class="bg-white rounded-3xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div><p class="font-semibold">${user.username || user.name || 'Guest'}</p><p class="text-slate-500 text-sm">Package: ${user.package || user.package_name || 'N/A'}</p></div>
+                        <div class="text-slate-500 text-sm">Expires in ${calculateCountdown(user.expires_at || user.expiresAt)}</div>
+                        <button onclick="disconnectUser(${user.id})" class="px-4 py-3 bg-red-100 text-red-700 rounded-2xl hover:bg-red-200 transition">Disconnect</button>
+                    </div>`).join('') : '<div class="bg-white rounded-3xl shadow-md p-6 text-slate-500">No active users at the moment.</div>'}</div>
+            `;
+        }
+
+        function renderReports() {
+            const totalRevenue = state.earnings.reduce((sum, item) => sum + Number(item.total_revenue || item.revenue || 0), 0);
+            const commission = totalRevenue * 0.02;
+            const earningsRows = state.earnings.map(entry => `
+                <tr class="bg-white"><td class="px-4 py-3">${entry.month || entry.period || formatDate(entry.date)}</td><td class="px-4 py-3">KES ${formatCurrency(entry.total_revenue || entry.revenue || 0)}</td><td class="px-4 py-3">KES ${formatCurrency((entry.total_revenue || entry.revenue || 0) * 0.02)}</td></tr>
+            `).join('') || '<tr><td colspan="3" class="px-4 py-6 text-center text-slate-500">No earnings data available.</td></tr>';
+            const transactionRows = state.transactions.map(tx => `
+                <tr class="bg-white"><td class="px-4 py-3">${tx.id || ''}</td><td class="px-4 py-3">${tx.package || tx.package_name || 'N/A'}</td><td class="px-4 py-3">KES ${formatCurrency(tx.amount || tx.total || 0)}</td><td class="px-4 py-3">${tx.status || tx.payment_status || ''}</td><td class="px-4 py-3">${formatDate(tx.created_at || tx.date)}</td></tr>
+            `).join('') || '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">No transactions yet.</td></tr>';
+            document.getElementById('reportsPage').innerHTML = `
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white rounded-3xl shadow-md p-6"><h2 class="text-xl font-semibold mb-4">Earnings Report</h2><div class="space-y-4"><div class="rounded-3xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Total Revenue</p><p class="text-2xl font-semibold">${formatCurrency(totalRevenue)}</p></div><div class="rounded-3xl bg-slate-50 p-4"><p class="text-sm text-slate-500">Estimated Commission</p><p class="text-2xl font-semibold text-orange-600">${formatCurrency(commission)}</p></div></div><div class="mt-6 overflow-x-auto"><table class="min-w-full text-left"><thead><tr><th class="px-4 py-3 text-slate-500 text-sm">Period</th><th class="px-4 py-3 text-slate-500 text-sm">Revenue</th><th class="px-4 py-3 text-slate-500 text-sm">Commission</th></tr></thead><tbody>${earningsRows}</tbody></table></div></div>
+                    <div class="bg-white rounded-3xl shadow-md p-6"><div class="flex items-center justify-between mb-4"><h2 class="text-xl font-semibold">Transactions</h2><button onclick="downloadTransactionsCsv()" class="px-4 py-2 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition">Export CSV</button></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead><tr><th class="px-4 py-3 text-slate-500 text-sm">ID</th><th class="px-4 py-3 text-slate-500 text-sm">Package</th><th class="px-4 py-3 text-slate-500 text-sm">Amount</th><th class="px-4 py-3 text-slate-500 text-sm">Status</th><th class="px-4 py-3 text-slate-500 text-sm">Date</th></tr></thead><tbody>${transactionRows}</tbody></table></div></div>
+                </div>
+            `;
+        }
+
+        function renderSettings() {
+            document.getElementById('settingsPage').innerHTML = `
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="bg-white rounded-3xl shadow-md p-6"><h2 class="text-xl font-semibold mb-4">Update Profile</h2><div class="space-y-4"><div><label class="text-sm font-medium text-slate-700">Business Name</label><input id="profileBusiness" type="text" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" value="${localStorage.getItem('clientBusiness') || ''}" /></div><div><label class="text-sm font-medium text-slate-700">Email</label><input id="profileEmail" type="email" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" value="${localStorage.getItem('clientEmail') || ''}" /></div><div><label class="text-sm font-medium text-slate-700">Phone</label><input id="profilePhone" type="tel" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" value="${localStorage.getItem('clientPhone') || ''}" /></div><button onclick="updateProfile()" class="px-5 py-3 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition">Save Profile</button></div></div>
+                    <div class="bg-white rounded-3xl shadow-md p-6"><h2 class="text-xl font-semibold mb-4">Change Password</h2><div class="space-y-4"><div><label class="text-sm font-medium text-slate-700">Current Password</label><input id="currentPassword" type="password" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><div><label class="text-sm font-medium text-slate-700">New Password</label><input id="newPassword" type="password" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><div><label class="text-sm font-medium text-slate-700">Confirm New Password</label><input id="confirmNewPassword" type="password" class="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none" /></div><button onclick="changePassword()" class="px-5 py-3 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition">Update Password</button></div></div>
+                </div>
+            `;
+        }
+
+        function openRouterModal(router = null) {
+            state.currentRouterId = router?.id || null;
+            document.getElementById('routerModalTitle').innerText = router ? 'Edit Router' : 'Add Router';
+            document.getElementById('routerModalSubtitle').innerText = router ? 'Update your router settings.' : 'Enter your MikroTik router details.';
+            document.getElementById('routerName').value = router?.name || router?.router_name || '';
+            document.getElementById('routerIp').value = router?.ip_address || router?.ip || '';
+            document.getElementById('routerUsername').value = router?.ssh_username || router?.username || '';
+            document.getElementById('routerPassword').value = '';
+            document.getElementById('routerModal').classList.remove('hidden');
+        }
+
+        function closeRouterModal() {
+            document.getElementById('routerModal').classList.add('hidden');
+        }
+
+        async function saveRouter() {
+            const name = document.getElementById('routerName').value.trim();
+            const ip = document.getElementById('routerIp').value.trim();
+            const sshUsername = document.getElementById('routerUsername').value.trim();
+            const sshPassword = document.getElementById('routerPassword').value;
+            if (!name || !ip || !sshUsername) {
+                return showToast('Please fill all required router fields.', true);
+            }
+            const button = document.getElementById('saveRouterButton');
+            setLoading(button, true, state.currentRouterId ? 'Saving...' : 'Creating...');
+            try {
+                if (state.currentRouterId) {
+                    await ClientAPI.updateRouter(state.currentRouterId, { name, ip_address: ip, ssh_username: sshUsername });
+                    showToast('Router updated successfully.');
+                } else {
+                    await ClientAPI.addRouter({ name, ip_address: ip, ssh_username: sshUsername, ssh_password: sshPassword });
+                    showToast('Router added successfully.');
+                }
+                closeRouterModal();
+                await loadRouters();
+            } catch (error) {
+                handleApiError(error);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        function editRouter(id) {
+            const router = state.routers.find(item => String(item.id) === String(id));
+            if (!router) return showToast('Router not found.', true);
+            openRouterModal(router);
+        }
+
+        async function testRouter(id) {
+            try {
+                await ClientAPI.testRouter(id);
+                showToast('Router test completed successfully.');
+                await loadRouters();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function configureRouter(id) {
+            try {
+                await ClientAPI.configureRouter(id);
+                showToast('Router configuration request sent.');
+                await loadRouters();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function deleteRouter(id) {
+            if (!confirm('Remove this router from your account?')) return;
+            try {
+                await ClientAPI.deleteRouter(id);
+                showToast('Router deleted.');
+                await loadRouters();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        function openPackageModal(pkg = null) {
+            state.currentPackageId = pkg?.id || null;
+            document.getElementById('packageModalTitle').innerText = pkg ? 'Edit Package' : 'Add Package';
+            document.getElementById('packageModalSubtitle').innerText = pkg ? 'Update your package details.' : 'Create a new pricing package.';
+            document.getElementById('packageName').value = pkg?.name || '';
+            document.getElementById('packagePrice').value = pkg?.price || '';
+            document.getElementById('packageMinutes').value = pkg?.time_minutes || pkg?.minutes || '';
+            document.getElementById('packageActive').checked = pkg?.is_active || pkg?.active || false;
+            document.getElementById('packageModal').classList.remove('hidden');
+        }
+
+        function closePackageModal() {
+            document.getElementById('packageModal').classList.add('hidden');
+        }
+
+        async function savePackage() {
+            const name = document.getElementById('packageName').value.trim();
+            const price = Number(document.getElementById('packagePrice').value);
+            const timeMinutes = Number(document.getElementById('packageMinutes').value);
+            const isActive = document.getElementById('packageActive').checked;
+            if (!name || !price || !timeMinutes) {
+                return showToast('Please complete all package fields.', true);
+            }
+            const button = document.getElementById('savePackageButton');
+            setLoading(button, true, state.currentPackageId ? 'Saving...' : 'Creating...');
+            try {
+                if (state.currentPackageId) {
+                    await ClientAPI.updatePackage(state.currentPackageId, { name, price, time_minutes: timeMinutes, is_active: isActive });
+                    showToast('Package updated successfully.');
+                } else {
+                    await ClientAPI.addPackage({ name, price, time_minutes: timeMinutes });
+                    showToast('Package created successfully.');
+                }
+                closePackageModal();
+                await loadPackages();
+            } catch (error) {
+                handleApiError(error);
+            } finally {
+                setLoading(button, false);
+            }
+        }
+
+        async function deletePackage(id) {
+            if (!confirm('Delete this package?')) return;
+            try {
+                await ClientAPI.deletePackage(id);
+                showToast('Package removed successfully.');
+                await loadPackages();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function disconnectUser(id) {
+            if (!confirm('Disconnect this user now?')) return;
+            try {
+                await ClientAPI.disconnectActiveUser(id);
+                showToast('User disconnected successfully.');
+                await loadActiveUsers();
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function updateProfile() {
+            const business_name = document.getElementById('profileBusiness').value.trim();
+            const email = document.getElementById('profileEmail').value.trim();
+            const phone = document.getElementById('profilePhone').value.trim();
+            if (!business_name || !email) return showToast('Business name and email are required.', true);
+            try {
+                await ClientAPI.updateProfile({ business_name, email, phone });
+                localStorage.setItem('clientBusiness', business_name);
+                localStorage.setItem('clientEmail', email);
+                localStorage.setItem('clientPhone', phone);
+                document.getElementById('sidebarBusinessName').innerText = business_name;
+                showToast('Profile updated successfully.');
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            if (!currentPassword || !newPassword) return showToast('Enter both current and new password.', true);
+            if (newPassword !== confirmNewPassword) return showToast('New passwords do not match.', true);
+            try {
+                await ClientAPI.changePassword({ current_password: currentPassword, new_password: newPassword, new_password_confirmation: confirmNewPassword });
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                showToast('Password changed successfully.');
+            } catch (error) {
+                handleApiError(error);
+            }
+        }
+
+        function downloadTransactionsCsv() {
+            const rows = [ ['ID', 'Package', 'Amount', 'Status', 'Date'] ];
+            state.transactions.forEach(tx => {
+                rows.push([tx.id || '', tx.package || tx.package_name || '', tx.amount || tx.total || 0, tx.status || tx.payment_status || '', tx.created_at || tx.date || '']);
+            });
+            const csvContent = rows.map(row => row.map(item => `"${String(item).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'jamoko-transactions.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV export started.');
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(Number(value || 0));
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return 'N/A';
+            const date = new Date(dateValue);
+            return date.toLocaleDateString('en-KE', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function calculateCountdown(expiresAt) {
+            if (!expiresAt) return 'N/A';
+            const target = new Date(expiresAt).getTime();
+            const diff = target - Date.now();
+            if (diff <= 0) return 'Expired';
+            const hours = Math.floor(diff / 1000 / 60 / 60);
+            const minutes = Math.floor((diff / 1000 / 60) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            return `${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        function handleApiError(error) {
+            if (!error) return;
+            if (error.status === 401) {
+                return logout();
+            }
+            if (error.status === 403) {
+                return showToast('Access denied. Please login again.', true);
+            }
+            const validation = error.payload?.errors;
+            if (error.status === 422 && validation) {
+                const firstKey = Object.keys(validation)[0];
+                return showToast(validation[firstKey][0] || 'Validation error.', true);
+            }
+            showToast(error.message || 'Server error, please try again.', true);
+        }
+
+        function logout() {
+            ClientAPI.clearToken();
+            window.location.href = 'client-login.html';
+        }
+
+        function setLoading(button, isLoading, text) {
+            if (!button) return;
+            if (isLoading) {
+                button.disabled = true;
+                button.dataset.originalText = button.textContent;
+                button.textContent = text;
+                return;
+            }
+            button.disabled = false;
+            button.textContent = button.dataset.originalText || button.textContent;
+        }
+
+        window.openRouterModal = openRouterModal;
+        window.closeRouterModal = closeRouterModal;
+        window.saveRouter = saveRouter;
+        window.editRouter = editRouter;
+        window.testRouter = testRouter;
+        window.configureRouter = configureRouter;
+        window.deleteRouter = deleteRouter;
+        window.openPackageModal = openPackageModal;
+        window.closePackageModal = closePackageModal;
+        window.savePackage = savePackage;
+        window.handleEditPackage = async function(id) { openPackageModal(state.packages.find(pkg => String(pkg.id) === String(id))); };
+        window.deletePackage = deletePackage;
+        window.disconnectUser = disconnectUser;
+        window.updateProfile = updateProfile;
+        window.changePassword = changePassword;
+        window.downloadTransactionsCsv = downloadTransactionsCsv;
+        window.logout = logout;
+
+        initClientDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Jamoko Links</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+        <div class="text-center mb-8">
+            <i class="fas fa-shield-alt text-5xl text-purple-600 mb-2"></i>
+            <h2 class="text-2xl font-bold">Admin Login</h2>
+            <p class="text-gray-600">Access Jamoko Links Admin Panel</p>
+        </div>
+        <form onsubmit="handleLogin(event)">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Email Address</label>
+                <input type="email" id="email" class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="admin@jamoko.com" required>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" id="password" class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="••••••" required>
+            </div>
+            <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">Login →</button>
+        </form>
+    </div>
+    <script src="js/admin.js"></script>
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await AdminAPI.login(email, password);
+                const token = response.token || response.access_token || response.data?.token;
+                const user = response.user || response.client || response.data?.user || response.data?.client || {};
+
+                if (!token) {
+                    throw new Error(response.message || 'Login response missing token');
+                }
+                if (user.is_admin === false) {
+                    throw new Error('Only administrators can log in here.');
+                }
+
+                localStorage.setItem('adminToken', token);
+                localStorage.setItem('adminLoggedIn', 'true');
+                window.location.href = 'admin-dashboard.html';
+            } catch (error) {
+                alert(error.message || 'Unable to sign in. Check your credentials and try again.');
+            }
+        }
+    </script>
+</body>
+</html>

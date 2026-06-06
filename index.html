@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamoko Links - Smart Hotspot Business Solution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .feature-card { transition: all 0.3s ease; }
+        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md fixed w-full z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-wifi text-2xl text-purple-600"></i>
+                <span class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Jamoko Links</span>
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#home" class="text-gray-700 hover:text-purple-600 transition">Home</a>
+                <a href="#features" class="text-gray-700 hover:text-purple-600 transition">Features</a>
+                <a href="#how-it-works" class="text-gray-700 hover:text-purple-600 transition">How It Works</a>
+                <a href="#pricing" class="text-gray-700 hover:text-purple-600 transition">Pricing</a>
+            </div>
+            <div class="flex space-x-3">
+                <a href="client-login.html" class="px-5 py-2 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition">Client Login</a>
+                <a href="admin-login.html" class="px-5 py-2 gradient-bg text-white rounded-lg hover:opacity-90 transition">Admin Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="pt-32 pb-20 gradient-bg">
+        <div class="container mx-auto px-6 text-center text-white">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">Grow Your Hotspot Business</h1>
+            <p class="text-xl md:text-2xl mb-8 opacity-90">Integrate MikroTik routers with M-Pesa in minutes. Auto-configuration, real-time payments, and 2% revenue share.</p>
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <a href="client-register.html" class="px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold hover:shadow-xl transition flex items-center justify-center">
+                    Get Started
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </a>
+                <a href="#how-it-works" class="px-8 py-4 border-2 border-white rounded-xl font-semibold hover:bg-white/10 transition">Watch Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">Why Choose Jamoko Links?</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card bg-white rounded-2xl p-8 text-center shadow-md">
+                    <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-router text-3xl text-purple-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">One-Click Router Config</h3>
+                    <p class="text-gray-600">Auto-configure your MikroTik router with a single click. No technical skills required.</p>
+                </div>
+                <div class="feature-card bg-white rounded-2xl p-8 text-center shadow-md">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-mobile-alt text-3xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">M-Pesa Integration</h3>
+                    <p class="text-gray-600">STK Push payments, real-time validation, and automatic voucher generation.</p>
+                </div>
+                <div class="feature-card bg-white rounded-2xl p-8 text-center shadow-md">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-line text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Real-Time Analytics</h3>
+                    <p class="text-gray-600">Track revenue, active users, and business performance from anywhere.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow -->
+    <section id="how-it-works" class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">How It Works</h2>
+            <div class="grid md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">1</div>
+                    <h3 class="font-bold mb-2">Sign Up</h3>
+                    <p class="text-gray-600 text-sm">Create your free account</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">2</div>
+                    <h3 class="font-bold mb-2">Add Router</h3>
+                    <p class="text-gray-600 text-sm">Enter your MikroTik details</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">3</div>
+                    <h3 class="font-bold mb-2">Auto-Configure</h3>
+                    <p class="text-gray-600 text-sm">Click to setup hotspot</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">4</div>
+                    <h3 class="font-bold mb-2">Start Earning</h3>
+                    <p class="text-gray-600 text-sm">Customers pay via M-Pesa</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">Simple Pricing</h2>
+            <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 text-center">
+                <h3 class="text-2xl font-bold mb-2">Revenue Share Model</h3>
+                <p class="text-5xl font-bold text-purple-600 mb-4">2%</p>
+                <p class="text-gray-600 mb-6">of your monthly revenue</p>
+                <ul class="text-left space-y-3 mb-8">
+                    <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-3"></i> Unlimited routers</li>
+                    <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-3"></i> Unlimited packages</li>
+                    <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-3"></i> M-Pesa integration</li>
+                    <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-3"></i> Real-time analytics</li>
+                    <li class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-3"></i> 24/7 support</li>
+                </ul>
+                <a href="client-register.html" class="flex items-center justify-center gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">
+                    Start Free Trial
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 Jamoko Links. All rights reserved.</p>
+            <div class="flex items-center justify-center text-gray-400 text-sm mt-2">
+                <span>Made in Kenya</span>
+                <svg class="w-5 h-5 ml-2" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#000" d="M0 0h512v170.7H0z"/>
+                    <path fill="#BB0000" d="M0 170.7h512v170.6H0z"/>
+                    <path fill="#006600" d="M0 341.3h512V512H0z"/>
+                </svg>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
